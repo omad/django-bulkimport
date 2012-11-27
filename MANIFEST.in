@@ -1,0 +1,4 @@
+include LICENSE
+recursive-include bulkimport/templates *
+recursive-include bulkimport/static *
+recursive-include docs *
