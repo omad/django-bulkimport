@@ -13,7 +13,7 @@ class BulkImportForm(forms.Form):
     spreadsheet = forms.FileField()
 
 ModelMapping = namedtuple('ModelMapping', ['model', 'mapping',
-    'unique_column', 'unique_field'])
+                          'unique_column', 'unique_field'])
 
 
 class BulkDataImportHandler:
@@ -24,7 +24,8 @@ class BulkDataImportHandler:
         self.header_row = 0
         self.first_data_row = 1
 
-    def add_mapping(self, model, mapping, unique_column=None, unique_field=None):
+    def add_mapping(self, model, mapping, unique_column=None,
+                    unique_field=None):
         """
         Specify a row <-> model mapping
 
@@ -41,7 +42,8 @@ class BulkDataImportHandler:
 
         The model is then saved into the database.
         """
-        self.mappings.append(ModelMapping(model, mapping, unique_column, unique_field))
+        self.mappings.append(ModelMapping(model, mapping, unique_column,
+                             unique_field))
 
     def add_function_mapping(self, function):
         """
@@ -94,7 +96,8 @@ class BulkDataImportHandler:
 
     def process_row(self, headers, vals):
         """
-        Takes a list of headers and values, and turns them into a new model record.
+        Takes a list of headers and values, and turns them into a new model
+        record.
 
         Looks up mapping data that has been added with `add_mapping`
         """
@@ -141,6 +144,3 @@ class BulkDataImportHandler:
             if not value:
                 value = ''
         return value
-
-
-

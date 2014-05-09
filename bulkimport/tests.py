@@ -11,9 +11,9 @@ import mock
 from bulkimport import BulkDataImportHandler
 from django.db import models
 
+
 class MyModel(models.Model):
     pass
-
 
 
 class SimpleTest(unittest.TestCase):
@@ -106,6 +106,3 @@ class SimpleTest(unittest.TestCase):
         self.assertEqual(3, len(results))
         self.assertEqual('Bob', results[0][0].first_name)
         self.assertEqual(50, results[2][0].age)
-
-
-
