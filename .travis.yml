@@ -9,9 +9,9 @@ env:
 # Package installation
 install:
   - pip install $DJANGO_VERSION
-  - pip install pep8
+  - pip install flake8
   - python setup.py install
 # Run the tests
 script:
-  - pep8 bulkimport
+  - flake8 bulkimport
   - python quicktest.py bulkimport
