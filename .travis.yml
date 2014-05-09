@@ -8,7 +8,7 @@ env:
 
 # Package installation
 install:
-  - pip install --use-mirrors $DJANGO_VERSION
+  - pip install $DJANGO_VERSION
   - pip install pep8
   - python setup.py install
 # Run the tests
