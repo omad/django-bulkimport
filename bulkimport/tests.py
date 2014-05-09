@@ -1,11 +1,20 @@
 import unittest
 import mock
-from bulkimport import BulkDataImportHandler
+from bulkimport import BulkDataImportHandler, MissingUniqueHeaderException
 from django.db import models
 
 
 class MyModel(models.Model):
     pass
+
+
+class Person(models.Model):
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
+    age = models.CharField(max_length=100, blank=True)
+
+    def save(*args, **kwargs):
+        pass
 
 
 class SimpleTest(unittest.TestCase):
@@ -77,13 +86,6 @@ class SimpleTest(unittest.TestCase):
         """
         Load in a simple spreadsheet
         """
-        class Person(models.Model):
-            first_name = models.CharField(max_length=100, blank=True)
-            last_name = models.CharField(max_length=100, blank=True)
-            age = models.CharField(max_length=100, blank=True)
-
-            def save(*args, **kwargs):
-                pass
         spreadsheet = 'bulkimport/testdata/names.xlsx'
 
         bi = BulkDataImportHandler()
@@ -98,3 +100,37 @@ class SimpleTest(unittest.TestCase):
         self.assertEqual(3, len(results))
         self.assertEqual('Bob', results[0][0].first_name)
         self.assertEqual(50, results[2][0].age)
+
+    def test_unique_field(self):
+        # Contains fields 'First Name', "Last Name', 'Age', 'ID'
+        spreadsheet = 'bulkimport/testdata/names.xlsx'
+
+        bi = BulkDataImportHandler()
+        bi.add_mapping(Person, {
+            'First Name': 'first_name',
+            'Last Name': 'last_name',
+            'Age': 'age'
+            }, 'ID', 'id')
+
+        results = bi.process_spreadsheet(spreadsheet)
+
+        self.assertEqual(3, len(results))
+        self.assertEqual('Bob', results[0][0].first_name)
+        self.assertEqual(50, results[2][0].age)
+
+    def test_missing_unique_field(self):
+        # Contains fields 'First Name', "Last Name', 'Age', 'ID'
+        spreadsheet = 'bulkimport/testdata/names.xlsx'
+
+        bi = BulkDataImportHandler()
+        bi.add_mapping(Person, {
+            'First Name': 'first_name',
+            'Last Name': 'last_name',
+            'Age': 'age'
+            }, 'PersonID', 'id')
+
+        with self.assertRaises(MissingUniqueHeaderException):
+            results = bi.process_spreadsheet(spreadsheet)
+
+
+

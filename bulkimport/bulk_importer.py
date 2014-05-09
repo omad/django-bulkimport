@@ -16,7 +16,24 @@ ModelMapping = namedtuple('ModelMapping', ['model', 'mapping',
                           'unique_column', 'unique_field'])
 
 
+class BulkImporterException(Exception):
+    pass
+
+
+class MissingUniqueHeaderException(BulkImporterException):
+    pass
+
+
 class BulkDataImportHandler:
+    """
+    Example Usage:
+
+    bi = BulkDataImportHandler()
+    bi.add_mapping(DjangoModel, {"SpreadsheetHeader": "model_field", ...})
+    imported_records = bi.process_spreadsheet(spreadsheet)
+
+
+    """
     def __init__(self):
         self.mappings = []
         self.linking_func = None
@@ -41,6 +58,12 @@ class BulkDataImportHandler:
         are set onto the model.
 
         The model is then saved into the database.
+
+        :param model: Django database model that will be populated
+        :param unique_column: (optional) The name of the unique column in
+                                         the spreadsheet
+        :param unique_field: (optional) The name of the unique column in the
+                                        DB model
         """
         self.mappings.append(ModelMapping(model, mapping, unique_column,
                              unique_field))
@@ -70,7 +93,7 @@ class BulkDataImportHandler:
 
     def process_spreadsheet(self, spreadsheet, rebuild_search_index=False):
         """
-        Open the spreadsheet file and process rows one at a time
+        Open the spreadsheet file and process rows one at a time.
 
         Also flushes and rebuilds the search index
         """
@@ -97,7 +120,7 @@ class BulkDataImportHandler:
     def process_row(self, headers, vals):
         """
         Takes a list of headers and values, and turns them into a new model
-        record.
+        record and saves the model to the database.
 
         Looks up mapping data that has been added with `add_mapping`
         """
@@ -106,9 +129,15 @@ class BulkDataImportHandler:
 
             # Try finding an existing record to update
             if unique_column:
+                field = unique_field
                 try:
-                    field = unique_field
                     value = vals[headers.index(unique_column)]
+                except ValueError:
+                    raise MissingUniqueHeaderException(
+                        "Expected a unique column header '%s' to be in "
+                        "the uploaded spreadsheet" % unique_column)
+
+                try:
                     instance = model.objects.get(**{field: value})
                 except model.DoesNotExist:
                     instance = model()
@@ -131,6 +160,25 @@ class BulkDataImportHandler:
             func_mapping(headers, vals)
 
         return results
+
+    def _validate_headers(self, headers):
+        """
+        Check that each header has a valid mapping
+        """
+        errors = []
+        for header in headers:
+            in_mappings = False
+            for mapping in self.mappings:
+                if header in mapping:
+                    in_mappings = True
+
+            if not in_mappings:
+                pass
+
+        return errors
+
+    def _validate_mapping(self, headers, mapping):
+        pass
 
     @staticmethod
     def process_value(instance, field, value):
