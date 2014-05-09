@@ -1,6 +1,7 @@
 ==========
 Bulkimport
 ==========
+[![Build Status](https://travis-ci.org/omad/django-bulkimport.svg?branch=master)](https://travis-ci.org/omad/django-bulkimport)
 
 Bulkimport provides tools for handling the bulk importing of
 spreadsheet data into Django models, through the Django Admin
