@@ -104,7 +104,7 @@ class BulkDataImportHandler:
         results = []
         for model, mapping, unique_column, unique_field in self.mappings:
 
-        # Try finding an existing record to update
+            # Try finding an existing record to update
             if unique_column:
                 try:
                     field = unique_field
