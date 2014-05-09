@@ -1,2 +1,4 @@
 *.pyc
 django_bulkimport.egg-info
+.coverage
+htmlcov
