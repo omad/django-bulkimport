@@ -10,6 +10,7 @@ setup(
     name = 'django-bulkimport',
     version = '0.1',
     packages = ['bulkimport'],
+    install_requires = ['openpyxl>=1.8.6'],
     include_package_data = True,
     license = 'BSD License',
     description = 'A simple Django app to help bulk import model data.',
