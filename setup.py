@@ -18,6 +18,7 @@ setup(
     url = 'https://github.com/omad/django-bulkimport/',
     author = 'Damien Ayers',
     author_email = 'd.ayers@uq.edu.au',
+    test_loader='quicktest',
     classifiers = [
         'Environment :: Web Environment',
         'Framework :: Django',

@@ -23,6 +23,12 @@ class BulkImporterException(Exception):
 class MissingUniqueHeaderException(BulkImporterException):
     pass
 
+class MappingProcessor:
+    """Mappings required for processing one row into one model
+    """
+    model = None
+    mapping = None
+    headers = None
 
 class BulkDataImportHandler:
     """
@@ -65,6 +71,8 @@ class BulkDataImportHandler:
         :param unique_field: (optional) The name of the unique column in the
                                         DB model
         """
+        if unique_column:
+            unique_column = unique_column.lower()
         self.mappings.append(ModelMapping(model, mapping, unique_column,
                              unique_field))
 
@@ -101,21 +109,21 @@ class BulkDataImportHandler:
         sheet = wb.get_sheet_by_name(wb.get_sheet_names()[0])
 
         data = sheet.range(sheet.calculate_dimension())
-        headers = [v.value for v in data[self.header_row]]
-        results = []
+        headers = [v.value.lower() for v in data[self.header_row] if v.value]
+        all_affected_records = []
         for row in data[self.first_data_row:]:
             vals = [v.value for v in row]
             if vals[0] == headers[0]:
                 # repeated headers
                 continue
-            new = self.process_row(headers, vals)
-            results.append(new)
+            affected_records = self.process_row(headers, vals)
+            all_affected_records.append(affected_records)
 
         # Update Search index
         if rebuild_search_index:
             management.call_command('rebuild_index', interactive=False)
 
-        return results
+        return all_affected_records
 
     def process_row(self, headers, vals):
         """
@@ -124,61 +132,56 @@ class BulkDataImportHandler:
 
         Looks up mapping data that has been added with `add_mapping`
         """
-        results = []
+        affected_records = []
         for model, mapping, unique_column, unique_field in self.mappings:
 
-            # Try finding an existing record to update
-            if unique_column:
-                field = unique_field
-                try:
-                    value = vals[headers.index(unique_column)]
-                except ValueError:
-                    raise MissingUniqueHeaderException(
-                        "Expected a unique column header '%s' to be in "
-                        "the uploaded spreadsheet" % unique_column)
-
-                try:
-                    instance = model.objects.get(**{field: value})
-                except model.DoesNotExist:
-                    instance = model()
-            else:
-                instance = model()
+            instance = self._find_or_create_record(
+                model,
+                unique_column,
+                unique_field,
+                headers,
+                vals
+            )
 
             for col, field in mapping.items():
                 try:
-                    value = vals[headers.index(col)]
+                    value = vals[headers.index(col.lower())]
                     value = self.process_value(instance, field, value)
                     setattr(instance, field, value)
                 except ValueError:
                     pass
-            results.append(instance)
-            if self.linking_func and len(results) > 1:
-                self.linking_func(*results)
+            affected_records.append(instance)
+            if self.linking_func and len(affected_records) > 1:
+                self.linking_func(*affected_records)
             instance.save()
 
         for func_mapping in self.func_mappings:
             func_mapping(headers, vals)
 
-        return results
+        return affected_records
 
-    def _validate_headers(self, headers):
+    @staticmethod
+    def _find_or_create_record(model, unique_column, field_name, headers, vals):
+        """Return an instance of model.
+
+        Either find an extisting model based on unique column and field, or
+        create a new one.
         """
-        Check that each header has a valid mapping
-        """
-        errors = []
-        for header in headers:
-            in_mappings = False
-            for mapping in self.mappings:
-                if header in mapping:
-                    in_mappings = True
+        if unique_column:
+            try:
+                value = vals[headers.index(unique_column)]
+            except ValueError:
+                raise MissingUniqueHeaderException(
+                    "Expected a unique column header '%s' to be in "
+                    "the uploaded spreadsheet" % unique_column)
 
-            if not in_mappings:
-                pass
-
-        return errors
-
-    def _validate_mapping(self, headers, mapping):
-        pass
+            try:
+                instance = model.objects.get(**{field_name: value})
+            except model.DoesNotExist:
+                instance = model()
+        else:
+            instance = model()
+        return instance
 
     @staticmethod
     def process_value(instance, field, value):

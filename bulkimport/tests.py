@@ -2,7 +2,7 @@ import unittest
 import mock
 from bulkimport import BulkDataImportHandler, MissingUniqueHeaderException
 from django.db import models
-
+from django.contrib import messages
 
 class MyModel(models.Model):
     pass
@@ -12,12 +12,13 @@ class Person(models.Model):
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     age = models.CharField(max_length=100, blank=True)
+    extra = models.CharField(max_length=100, blank=True)
 
     def save(*args, **kwargs):
         pass
 
-
 class SimpleTest(unittest.TestCase):
+
 
     def test_process_row_single(self):
         mapping = {'one': 'one'}
@@ -131,6 +132,47 @@ class SimpleTest(unittest.TestCase):
 
         with self.assertRaises(MissingUniqueHeaderException):
             results = bi.process_spreadsheet(spreadsheet)
+
+
+    def test_read_spreadsheet_case_insensitive(self):
+        """
+        Test the column names to be mapped are case insensitive
+        """
+        spreadsheet = 'bulkimport/testdata/names.xlsx'
+
+        bi = BulkDataImportHandler()
+        bi.add_mapping(Person, {
+            'First name': 'first_name',
+            'Last NaMe': 'last_name',
+            'Age': 'age'
+            })
+
+        results = bi.process_spreadsheet(spreadsheet)
+
+        self.assertEqual(3, len(results))
+        self.assertEqual('Bob', results[0][0].first_name)
+        self.assertEqual(50, results[2][0].age)
+
+
+    def test_mapped_column_no_data(self):
+        """
+        Test the column names to be mapped are case insensitive
+        """
+        spreadsheet = 'bulkimport/testdata/names.xlsx'
+
+        bi = BulkDataImportHandler()
+        bi.add_mapping(Person, {
+            'First name': 'first_name',
+            'Last NaMe': 'last_name',
+            'Age': 'age',
+            'nonexistant column': 'extra'
+            })
+
+        results = bi.process_spreadsheet(spreadsheet)
+
+        self.assertEqual(3, len(results))
+        self.assertEqual('Bob', results[0][0].first_name)
+        self.assertEqual(50, results[2][0].age)
 
 
 
