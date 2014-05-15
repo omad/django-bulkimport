@@ -73,8 +73,9 @@ class BulkDataImportHandler:
         """
         if unique_column:
             unique_column = unique_column.lower()
-        self.mappings.append(ModelMapping(model, mapping, unique_column,
-                             unique_field))
+        lowercase_mapping = dict((k.lower(), v) for k,v in mapping.items())
+        self.mappings.append(ModelMapping(model, lowercase_mapping,
+                                          unique_column, unique_field))
 
     def add_function_mapping(self, function):
         """
@@ -103,7 +104,9 @@ class BulkDataImportHandler:
         """
         Open the spreadsheet file and process rows one at a time.
 
-        Also flushes and rebuilds the search index
+        Also flushes and rebuilds the search index.
+
+        Processes the rows in the spreadsheet one at a time
         """
         wb = load_workbook(spreadsheet)
         sheet = wb.get_sheet_by_name(wb.get_sheet_names()[0])
@@ -113,9 +116,10 @@ class BulkDataImportHandler:
         all_affected_records = []
         for row in data[self.first_data_row:]:
             vals = [v.value for v in row]
-            if vals[0] == headers[0]:
-                # repeated headers
+
+            if vals[0].lower() == headers[0]: # repeated header row
                 continue
+
             affected_records = self.process_row(headers, vals)
             all_affected_records.append(affected_records)
 
@@ -133,6 +137,7 @@ class BulkDataImportHandler:
         Looks up mapping data that has been added with `add_mapping`
         """
         affected_records = []
+        used_columns = set()
         for model, mapping, unique_column, unique_field in self.mappings:
 
             instance = self._find_or_create_record(
@@ -145,9 +150,10 @@ class BulkDataImportHandler:
 
             for col, field in mapping.items():
                 try:
-                    value = vals[headers.index(col.lower())]
+                    value = vals[headers.index(col)]
                     value = self.process_value(instance, field, value)
                     setattr(instance, field, value)
+                    used_columns.add(col)
                 except ValueError:
                     pass
             affected_records.append(instance)
