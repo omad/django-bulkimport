@@ -114,20 +114,31 @@ class BulkDataImportHandler:
         data = sheet.range(sheet.calculate_dimension())
         headers = [v.value.lower() for v in data[self.header_row] if v.value]
         all_affected_records = []
+        all_columns_used = set()
+
         for row in data[self.first_data_row:]:
             vals = [v.value for v in row]
 
             if vals[0].lower() == headers[0]: # repeated header row
                 continue
 
-            affected_records = self.process_row(headers, vals)
+            affected_records, used_cols = self.process_row(headers, vals)
+            all_columns_used.update(used_cols)
             all_affected_records.append(affected_records)
 
         # Update Search index
         if rebuild_search_index:
             management.call_command('rebuild_index', interactive=False)
 
-        return all_affected_records
+        unused_cols = all_columns_used.difference(headers)
+
+        stats = {
+            'used_columns': all_columns_used,
+            'unused_columns': unused_cols
+        }
+
+        return all_affected_records, stats
+
 
     def process_row(self, headers, vals):
         """
@@ -164,7 +175,7 @@ class BulkDataImportHandler:
         for func_mapping in self.func_mappings:
             func_mapping(headers, vals)
 
-        return affected_records
+        return affected_records, used_columns
 
     @staticmethod
     def _find_or_create_record(model, unique_column, field_name, headers, vals):

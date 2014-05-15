@@ -34,7 +34,8 @@ class SimpleTest(unittest.TestCase):
         headers = ['one', 'two']
         vals = ['val1', 'spot']
 
-        result = bdih.process_row(headers, vals)[0]
+        affected_records, used_cols = bdih.process_row(headers, vals)
+        new_record = affected_records[0]
 
         # make sure class was created
         self.assertEqual(model.call_count, 1)
@@ -42,7 +43,7 @@ class SimpleTest(unittest.TestCase):
         # now make sure save was called once
         self.assertEqual(save_mock.call_count, 1)
 
-        self.assertEqual('val1', result.one)
+        self.assertEqual('val1', new_record.one)
 
     def test_process_row_multi(self):
         mapping_1 = {'one': 'one'}
@@ -65,7 +66,8 @@ class SimpleTest(unittest.TestCase):
         headers = ['one', 'two']
         vals = ['val1', 'spot']
 
-        result_1, result_2 = bdih.process_row(headers, vals)
+        affected_records, stats = bdih.process_row(headers, vals)
+        result_1, result_2 = affected_records
 
         # make sure one class each was created
         self.assertEqual(model_1.call_count, 1)
@@ -96,11 +98,11 @@ class SimpleTest(unittest.TestCase):
             'Age': 'age'
             })
 
-        results = bi.process_spreadsheet(spreadsheet)
+        affected_records, stats = bi.process_spreadsheet(spreadsheet)
 
-        self.assertEqual(3, len(results))
-        self.assertEqual('Bob', results[0][0].first_name)
-        self.assertEqual(50, results[2][0].age)
+        self.assertEqual(3, len(affected_records))
+        self.assertEqual('Bob', affected_records[0][0].first_name)
+        self.assertEqual(50, affected_records[2][0].age)
 
     def test_unique_field(self):
         # Contains fields 'First Name', "Last Name', 'Age', 'ID'
@@ -113,11 +115,11 @@ class SimpleTest(unittest.TestCase):
             'Age': 'age'
             }, 'ID', 'id')
 
-        results = bi.process_spreadsheet(spreadsheet)
+        affected_records, stats = bi.process_spreadsheet(spreadsheet)
 
-        self.assertEqual(3, len(results))
-        self.assertEqual('Bob', results[0][0].first_name)
-        self.assertEqual(50, results[2][0].age)
+        self.assertEqual(3, len(affected_records))
+        self.assertEqual('Bob', affected_records[0][0].first_name)
+        self.assertEqual(50, affected_records[2][0].age)
 
     def test_missing_unique_field(self):
         # Contains fields 'First Name', "Last Name', 'Age', 'ID'
@@ -131,7 +133,7 @@ class SimpleTest(unittest.TestCase):
             }, 'PersonID', 'id')
 
         with self.assertRaises(MissingUniqueHeaderException):
-            results = bi.process_spreadsheet(spreadsheet)
+            affected_records, stats = bi.process_spreadsheet(spreadsheet)
 
 
     def test_read_spreadsheet_case_insensitive(self):
@@ -147,11 +149,11 @@ class SimpleTest(unittest.TestCase):
             'Age': 'age'
             })
 
-        results = bi.process_spreadsheet(spreadsheet)
+        affected_records, stats = bi.process_spreadsheet(spreadsheet)
 
-        self.assertEqual(3, len(results))
-        self.assertEqual('Bob', results[0][0].first_name)
-        self.assertEqual(50, results[2][0].age)
+        self.assertEqual(3, len(affected_records))
+        self.assertEqual('Bob', affected_records[0][0].first_name)
+        self.assertEqual(50, affected_records[2][0].age)
 
 
     def test_mapped_column_no_data(self):
@@ -168,11 +170,11 @@ class SimpleTest(unittest.TestCase):
             'nonexistant column': 'extra'
             })
 
-        results = bi.process_spreadsheet(spreadsheet)
+        affected_records, stats = bi.process_spreadsheet(spreadsheet)
 
-        self.assertEqual(3, len(results))
-        self.assertEqual('Bob', results[0][0].first_name)
-        self.assertEqual(50, results[2][0].age)
+        self.assertEqual(3, len(affected_records))
+        self.assertEqual('Bob', affected_records[0][0].first_name)
+        self.assertEqual(50, affected_records[2][0].age)
 
 
 
