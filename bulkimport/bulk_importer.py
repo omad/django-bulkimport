@@ -23,6 +23,9 @@ class BulkImporterException(Exception):
 class MissingUniqueHeaderException(BulkImporterException):
     pass
 
+class EmptyUniqueFieldException(BulkImporterException):
+    pass
+
 class MappingProcessor:
     """Mappings required for processing one row into one model
     """
@@ -119,12 +122,15 @@ class BulkDataImportHandler:
         for row in data[self.first_data_row:]:
             vals = [v.value for v in row]
 
-            if vals[0].lower() == headers[0]: # repeated header row
+            if vals[0] and vals[0].lower() == headers[0]: # repeated header row
                 continue
 
-            affected_records, used_cols = self.process_row(headers, vals)
-            all_columns_used.update(used_cols)
-            all_affected_records.append(affected_records)
+            try:
+                affected_records, used_cols = self.process_row(headers, vals)
+                all_columns_used.update(used_cols)
+                all_affected_records.append(affected_records)
+            except EmptyUniqueFieldException:
+                logger.debug(EmptyUniqueFieldException)
 
         # Update Search index
         if rebuild_search_index:
@@ -167,7 +173,16 @@ class BulkDataImportHandler:
                     used_columns.add(col)
                 except ValueError:
                     pass
+
+            # Check unique field has a value
+            if unique_field:
+                if not getattr(instance, unique_field):
+                    raise EmptyUniqueFieldException(
+                        "Aborted importing row with empty '%s' column" %
+                        unique_column)
+
             affected_records.append(instance)
+
             if self.linking_func and len(affected_records) > 1:
                 self.linking_func(*affected_records)
             instance.save()
@@ -181,7 +196,7 @@ class BulkDataImportHandler:
     def _find_or_create_record(model, unique_column, field_name, headers, vals):
         """Return an instance of model.
 
-        Either find an extisting model based on unique column and field, or
+        Either find an existing model based on unique column and field, or
         create a new one.
         """
         if unique_column:

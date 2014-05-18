@@ -112,7 +112,8 @@ class SimpleTest(unittest.TestCase):
         bi.add_mapping(Person, {
             'First Name': 'first_name',
             'Last Name': 'last_name',
-            'Age': 'age'
+            'Age': 'age',
+            'ID': 'id'
             }, 'ID', 'id')
 
         affected_records, stats = bi.process_spreadsheet(spreadsheet)

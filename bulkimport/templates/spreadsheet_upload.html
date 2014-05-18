@@ -11,9 +11,28 @@
 {% endif %}
 
 {% block content %}
+
+{% if extra %}
+<b>Processed data from columns:<b>
+<ul>
+{% for col_name in extra.stats.used_columns %}
+    <li>{{col_name}}</li>
+{% endfor %}
+</ul>
+
+<b>Unused columns in spreadsheet:<b>
+<ul>
+{% for col_name in extra.stats.used_columns %}
+    <li>{{col_name}}</li>
+{% endfor %}
+</ul>
+
+{% endif %}
+
+
 <form enctype="multipart/form-data" method="post">
-{% csrf_token %}
 <table>
+{% csrf_token %}
 {{ form }}
 </table>
 <input type="submit">
