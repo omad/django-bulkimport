@@ -136,7 +136,11 @@ class BulkDataImportHandler:
         if rebuild_search_index:
             management.call_command('rebuild_index', interactive=False)
 
-        unused_cols = all_columns_used.difference(headers)
+        all_columns_used = [unicode(s) for s in all_columns_used]
+        unused_cols = list(set(headers) - set(all_columns_used))
+
+        all_columns_used.sort()
+        unused_cols.sort()
 
         stats = {
             'used_columns': all_columns_used,
