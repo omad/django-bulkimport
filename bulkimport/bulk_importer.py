@@ -122,7 +122,7 @@ class BulkDataImportHandler:
         for row in data[self.first_data_row:]:
             vals = [v.value for v in row]
 
-            if vals[0] and vals[0].lower() == headers[0]: # repeated header row
+            if vals[0] and str(vals[0]).lower() == headers[0]: # repeated header row
                 continue
 
             try:
