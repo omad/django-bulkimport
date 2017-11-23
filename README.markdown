@@ -1,6 +1,8 @@
-==========
-Bulkimport
-==========
+# Bulkimport
+
+This project was for an old version of django and is no longer supported. (2017)
+
+
 [![Build Status](https://travis-ci.org/omad/django-bulkimport.svg?branch=master)](https://travis-ci.org/omad/django-bulkimport)
 
 Bulkimport provides tools for handling the bulk importing of
